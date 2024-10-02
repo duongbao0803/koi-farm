@@ -81,15 +81,14 @@ const userController = {
   },
 
   updateUser: async (req, res) => {
-    const id = req.params.id;
-    const { name, phone, address, dob } = req.body;
+    const { id, name, phone, address, dob } = req.body;
     const myRole = req.user.role;
     const date = new Date();
     const targetUser = await User.findById(id);
     const existingPhoneUser = await User.findOne({ phone });
 
     try {
-      if (!ObjectId.isValid(req.params.id)) {
+      if (!ObjectId.isValid(id)) {
         return res.status(400).json({
           message: "ID của người dùng không hợp lệ",
           status: 400,
@@ -144,8 +143,8 @@ const userController = {
       }
 
       const user = await User.findByIdAndUpdate(
-        id,
         {
+          id,
           name,
           phone,
           address,

@@ -23,6 +23,14 @@ const fishSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    image: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
     gender: {
       type: String,
       enum: ["Male", "Female"],
@@ -30,13 +38,12 @@ const fishSchema = new mongoose.Schema(
     },
     age: {
       type: Number,
-      required: true,
     },
     size: {
       type: Number,
       required: true,
     },
-    type: { type: mongoose.Schema.Types.ObjectId, ref: "Type" },
+    type: { type: mongoose.Schema.Types.ObjectId, ref: "type" },
     feedingAmount: {
       type: Number,
       required: true,
@@ -68,6 +75,12 @@ const fishSchema = new mongoose.Schema(
       required: true,
     },
     comments: [commentSchema],
+    vouchers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "voucher",
+      },
+    ],
     consignmentStatus: { type: String, default: "Available" },
   },
   { timestamps: true }

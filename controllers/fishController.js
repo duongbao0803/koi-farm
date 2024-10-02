@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
 const Fish = require("../models/fish.model");
+const User = require("../models/user.model");
 
 const fishController = {
   getAllFish: async (req, res) => {
@@ -40,18 +41,20 @@ const fishController = {
         filter.gender = { $regex: gender, $options: "i" };
       }
       if (minPrice || maxPrice) {
-        query.price = {};
+        filter.price = {};
         if (minPrice) {
-          query.price.$gte = parseFloat(minPrice);
+          filter.price.$gte = parseFloat(minPrice);
         }
         if (maxPrice) {
-          query.price.$lte = parseFloat(maxPrice);
+          filter.price.$lte = parseFloat(maxPrice);
         }
       }
 
       try {
         const fishes = await Fish.find(filter)
           .select()
+          .populate("type")
+          .populate("comments")
           .skip(skip)
           .limit(pageSize);
         const totalCount = await Fish.countDocuments(filter);
@@ -111,7 +114,9 @@ const fishController = {
       const {
         name,
         origin,
+        image,
         gender,
+        description,
         size,
         type,
         feedingAmount,
@@ -128,6 +133,8 @@ const fishController = {
         !name ||
         !origin ||
         !gender ||
+        !image ||
+        !description ||
         !size ||
         !type ||
         !feedingAmount ||
@@ -160,13 +167,14 @@ const fishController = {
         name,
         origin,
         gender,
+        image,
+        description,
         size,
         type,
         feedingAmount,
         screeningRate,
         category,
         price,
-        sold,
         certificates,
         yob,
       });
@@ -178,7 +186,8 @@ const fishController = {
         fish: newFish,
       });
     } catch (error) {
-      return res.status(400).json({ message: "Thêm cá thất bại" });
+      console.log(error);
+      return res.status(400).json(error);
     }
   },
 
@@ -188,6 +197,18 @@ const fishController = {
       if (!ObjectId.isValid(fishId)) {
         return res.status(400).json({
           message: "ID của cá không hợp lệ",
+          status: 400,
+        });
+      }
+
+      const postsUsingFish = await Post.findOne({
+        fish: req.params.id,
+      });
+
+      if (postsUsingFish) {
+        return res.status(400).json({
+          message:
+            "Không thể xóa thông tin của cá này. Thông tin của cá còn nằm trong bài viết",
           status: 400,
         });
       }
@@ -211,15 +232,15 @@ const fishController = {
 
   updateConsignmentStatus: async (req, res) => {
     try {
-      const fishId = req.params.id;
-      if (!ObjectId.isValid(fishId)) {
+      const { id, consignmentStatus } = req.body;
+
+      if (!ObjectId.isValid(id)) {
         return res.status(400).json({
           message: "ID của cá không hợp lệ",
           status: 400,
         });
       }
 
-      const { consignmentStatus } = req.body;
       if (!consignmentStatus) {
         return res.status(400).json({
           message: "Mọi trường dữ liệu đều bắt buộc",
@@ -228,8 +249,7 @@ const fishController = {
       }
 
       const updatedFish = await Fish.findByIdAndUpdate(
-        fishId,
-        { consignmentStatus },
+        { id, consignmentStatus },
         { new: true }
       );
 
@@ -254,9 +274,12 @@ const fishController = {
   editFish: async (req, res) => {
     try {
       const {
+        fishId,
         name,
         origin,
         gender,
+        image,
+        description,
         size,
         type,
         feedingAmount,
@@ -266,7 +289,6 @@ const fishController = {
         certificates,
         yob,
       } = req.body;
-      const fishId = req.params.id;
       const currentDate = new Date();
       const currentYear = currentDate.getFullYear();
 
@@ -281,6 +303,8 @@ const fishController = {
         !name ||
         !origin ||
         !gender ||
+        !image ||
+        !description ||
         !size ||
         !type ||
         !feedingAmount ||
@@ -313,6 +337,8 @@ const fishController = {
         name,
         origin,
         gender,
+        image,
+        description,
         size,
         type,
         feedingAmount,
@@ -343,6 +369,172 @@ const fishController = {
       return res
         .status(400)
         .json({ message: "Cập nhật thông tin cá thất bại" });
+    }
+  },
+
+  //comment
+  addNewComment: async (req, res) => {
+    const { rating, content } = req.body;
+
+    try {
+      if (!ObjectId.isValid(req.params.fishId)) {
+        return res.status(400).json({
+          message: "ID của cá không hợp lệ",
+          status: 400,
+        });
+      }
+
+      const fish = await Fish.findById(req.params.fishId);
+      if (!fish) {
+        return res.status(404).json({
+          message: "Không tìm thấy cá",
+          status: 404,
+        });
+      }
+
+      const existingComment = await Fish.findOne({
+        _id: req.params.fishId,
+        "comments.author": req.user.id,
+      });
+
+      if (existingComment) {
+        return res.status(404).json({
+          message:
+            "Người dùng chỉ được đánh giá và nhận xét 1 lần duy nhất trên mỗi sản phẩm",
+          status: 404,
+        });
+      }
+
+      const user = await User.findById(req.user.id);
+
+      const newComment = {
+        rating: rating,
+        content: content,
+        author: user._id,
+      };
+
+      fish.comments.push(newComment);
+      await fish.save();
+
+      return res
+        .status(200)
+        .json({ status: 200, message: "Thêm đánh giá thành công" });
+    } catch (err) {
+      console.log("check err", err);
+      return res.status(400).json(err);
+    }
+  },
+
+  deleteComment: async (req, res) => {
+    const { fishId, commentId } = req.params;
+
+    try {
+      if (!ObjectId.isValid(req.params.fishId)) {
+        return res.status(400).json({
+          message: "ID của cá không hợp lệ",
+          status: 400,
+        });
+      }
+
+      const fish = await Fish.findById(fishId);
+      if (!fish) {
+        return res.status(404).json({
+          message: "Không tìm thấy thông tin của cá",
+          status: 404,
+        });
+      }
+
+      const comment = fish.comments.id(commentId);
+
+      if (!comment) {
+        return res.status(404).json({
+          message: "Không tìm thấy bình luận",
+          status: 404,
+        });
+      }
+
+      if (
+        comment.author.toString() !== req.user.id.toString() &&
+        req.user.role !== "ADMIN" &&
+        req.user.role !== "STAFF"
+      ) {
+        return res.status(403).json({
+          message: "Bạn không có quyền xóa đánh giá này",
+          status: 403,
+        });
+      }
+
+      fish.comments.pull(comment._id);
+      await fish.save();
+
+      return res.status(200).json({
+        message: "Xóa đánh giá thành công",
+        status: 200,
+      });
+    } catch (err) {
+      return res.status(400).json(err);
+    }
+  },
+
+  editComment: async (req, res) => {
+    const { fishId, commentId } = req.params;
+    const { rating, content } = req.body;
+
+    if (!rating || !content) {
+      return res.status(400).json({
+        message: "Mọi trường dữ liệu đều bắt buộc",
+        status: 400,
+      });
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({
+        message: "Đánh giá sản phẩm phải nằm trong khoảng 1 đến 5 sao",
+        status: 400,
+      });
+    }
+
+    if (content.length < 8) {
+      return res.status(400).json({
+        message: "Nhận xét phải có ít nhất 8 chữ",
+        status: 400,
+      });
+    }
+
+    try {
+      const fish = await Fish.findById(fishId);
+      if (!fish) {
+        return res.status(404).json({
+          message: "Không tìm thấy thông tin của cá",
+          status: 400,
+        });
+      }
+
+      const comment = fish.comments.id(commentId);
+      if (!comment) {
+        return res.status(404).json({
+          message: "Không tìm thấy bình luận",
+          status: 400,
+        });
+      }
+
+      if (comment.author.toString() !== req.user.id.toString()) {
+        return res.status(403).json({
+          message: "Bạn không có quyền chỉnh sửa đánh giá này",
+          status: 403,
+        });
+      }
+
+      comment.content = content;
+      comment.rating = rating;
+
+      await fish.save();
+      return res.status(200).json({
+        message: "Cập nhật đánh giá thành công",
+        status: 200,
+      });
+    } catch (err) {
+      return res.status(400).send(err);
     }
   },
 };

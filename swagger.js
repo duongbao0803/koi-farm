@@ -3,12 +3,18 @@ const modelToSwagger = require("mongoose-to-swagger");
 const swaggerAutogen = require("swagger-autogen")();
 const User = require("./models/user.model.js");
 const Fish = require("./models/fish.model.js");
+const Post = require("./models/post.model.js");
+const Type = require("./models/type.model.js");
+const Voucher = require("./models/voucher.model.js");
 
 const outputFile = "./swagger-output.json";
 const routes = ["./routes/routes.js"];
 
 const userDefinition = modelToSwagger(User);
 const fishDefinition = modelToSwagger(Fish);
+const postDefinition = modelToSwagger(Post);
+const typeDefinition = modelToSwagger(Type);
+const voucherDefinition = modelToSwagger(Voucher);
 
 const doc = {
   info: {
@@ -41,6 +47,9 @@ if (fs.existsSync(outputFile)) {
 
   existingSwaggerData.definitions.User = userDefinition;
   existingSwaggerData.definitions.Fish = fishDefinition;
+  existingSwaggerData.definitions.Type = typeDefinition;
+  existingSwaggerData.definitions.Post = postDefinition;
+  existingSwaggerData.definitions.Voucher = voucherDefinition;
 
   fs.writeFileSync(outputFile, JSON.stringify(existingSwaggerData, null, 2));
   console.log("Swagger file updated successfully");

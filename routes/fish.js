@@ -7,7 +7,13 @@ router.get("/", fishController.getAllFish);
 
 router.get("/:id", fishController.getDetailFish);
 
-router.put("/:id", middlewareController.verifyToken, fishController.editFish);
+router.post(
+  "/create",
+  middlewareController.verifyTokenAdmin,
+  fishController.addFish
+);
+
+router.put("/", middlewareController.verifyToken, fishController.editFish);
 
 router.delete(
   "/:id",
@@ -16,9 +22,27 @@ router.delete(
 );
 
 router.put(
-  "/:id",
+  "/consignmentStatus",
   middlewareController.verifyTokenAdmin,
   fishController.updateConsignmentStatus
+);
+
+router.post(
+  "/:fishId/comment",
+  middlewareController.verifyTokenMember,
+  fishController.addNewComment
+);
+
+router.delete(
+  "/:fishId/comment/:commentId",
+  middlewareController.verifyToken,
+  fishController.deleteComment
+);
+
+router.put(
+  "/:fishId/comment/:commentId",
+  middlewareController.verifyToken,
+  fishController.editComment
 );
 
 module.exports = router;

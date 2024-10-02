@@ -28,12 +28,12 @@ router.put(
 );
 
 router.put(
-  "/:id",
+  "/",
   middlewareController.verifyTokenAdmin,
   userController.updateUser
 );
 
-router.patch(
+router.delete(
   "/:id",
   middlewareController.verifyTokenAdmin,
   userController.updateStatusUser
