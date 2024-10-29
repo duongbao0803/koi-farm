@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
 const bcrypt = require("bcrypt");
-const User = require("../models/user.model");
+const User = require("../models/user");
 
 const userController = {
   getAllUser: async (req, res) => {
@@ -80,15 +80,63 @@ const userController = {
     }
   },
 
+  deleteUser: async (req, res) => {
+    try {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({
+          message: "ID của người dùng không hợp lệ",
+          status: 400,
+        });
+      }
+
+      const loggedInUserId = req.user.id;
+      if (req.params.id === loggedInUserId.toString()) {
+        return res.status(403).json({
+          message: "Bạn không thể xóa bản thân bạn",
+          status: 403,
+        });
+      }
+
+      const user = await User.findById(req.params.id);
+      if (!user) {
+        return res.status(404).json({
+          message: "Không tìm thấy người dùng",
+          status: 404,
+        });
+      }
+
+      if (user.status === false) {
+        await User.findByIdAndDelete(req.params.id);
+        const pattern = "users:*";
+        const keys = await keysAsync(pattern);
+
+        if (keys.length > 0) {
+          await delAsync(keys);
+        }
+        return res.status(200).json({
+          message: "Xóa thành công",
+          status: 200,
+        });
+      } else {
+        return res.status(400).json({
+          message: "Không thể xóa người dùng trước khi người dùng INACTIVE",
+          status: 400,
+        });
+      }
+    } catch (err) {
+      return res.status(400).json(err);
+    }
+  },
+
   updateUser: async (req, res) => {
-    const { id, name, phone, address, dob } = req.body;
+    const { _id, name, phone, address, dob } = req.body;
     const myRole = req.user.role;
     const date = new Date();
-    const targetUser = await User.findById(id);
+    const targetUser = await User.findById(_id);
     const existingPhoneUser = await User.findOne({ phone });
 
     try {
-      if (!ObjectId.isValid(id)) {
+      if (!ObjectId.isValid(_id)) {
         return res.status(400).json({
           message: "ID của người dùng không hợp lệ",
           status: 400,
@@ -109,7 +157,7 @@ const userController = {
         });
       }
 
-      if (existingPhoneUser && existingPhoneUser.id !== id) {
+      if (existingPhoneUser && existingPhoneUser.id !== _id) {
         return res.status(400).json({
           message: "Số điện thoại đã tồn tại",
           status: 400,
@@ -143,8 +191,8 @@ const userController = {
       }
 
       const user = await User.findByIdAndUpdate(
+        _id,
         {
-          id,
           name,
           phone,
           address,
@@ -165,6 +213,8 @@ const userController = {
 
   updateStatusUser: async (req, res) => {
     const { status } = req.body;
+
+    console.log("check status", status);
 
     try {
       if (!ObjectId.isValid(req.params.id)) {

@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-const User = require("../models/user.model");
-const Fish = require("../models/fish.model");
-const Voucher = require("../models/voucher.model");
+const User = require("../models/user");
+const Fish = require("../models/fish");
+const Voucher = require("../models/voucher");
 
 dotenv.config();
 

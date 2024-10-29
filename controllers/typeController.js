@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
-const Type = require("../models/type.model");
-const Fish = require("../models/fish.model");
+const Type = require("../models/type");
+const Fish = require("../models/fish");
 
 const typeController = {
   getAllType: async (req, res) => {
@@ -72,7 +72,7 @@ const typeController = {
         });
       }
 
-      res.status(200).json({ postInfo });
+      res.status(200).json({ typeInfo });
     } catch (err) {
       res.status(400).json(err);
     }

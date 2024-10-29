@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
-const Fish = require("../models/fish.model");
-const User = require("../models/user.model");
+const Fish = require("../models/fish");
+const User = require("../models/user");
+const Type = require("../models/type");
 
 const fishController = {
   getAllFish: async (req, res) => {
@@ -35,10 +36,14 @@ const fishController = {
         filter.category = { $regex: category, $options: "i" };
       }
       if (origin) {
-        filter.origin = { $regex: origin, $options: "i" };
+        const types = await Type.find({
+          origin: { $regex: origin, $options: "i" },
+        });
+        const typeIds = types.map((type) => type._id);
+        filter.type = { $in: typeIds };
       }
       if (gender) {
-        filter.gender = { $regex: gender, $options: "i" };
+        filter.gender = gender;
       }
       if (minPrice || maxPrice) {
         filter.price = {};
@@ -113,11 +118,11 @@ const fishController = {
     try {
       const {
         name,
-        origin,
         image,
         gender,
         description,
         size,
+        quantity,
         type,
         feedingAmount,
         screeningRate,
@@ -129,12 +134,19 @@ const fishController = {
       const currentDate = new Date();
       const currentYear = currentDate.getFullYear();
 
+      if (!ObjectId.isValid(type)) {
+        return res.status(400).json({
+          message: "ID của loại cá không hợp lệ",
+          status: 400,
+        });
+      }
+
       if (
         !name ||
-        !origin ||
         !gender ||
         !image ||
         !description ||
+        !quantity ||
         !size ||
         !type ||
         !feedingAmount ||
@@ -149,9 +161,9 @@ const fishController = {
         });
       }
 
-      if (price <= 0) {
+      if (price <= 0 || quantity <= 0) {
         return res.status(400).json({
-          message: "Giá sản phẩm phải là số dương",
+          message: "Giá sản phẩm và số lượng phải là số dương",
           status: 400,
         });
       }
@@ -165,12 +177,12 @@ const fishController = {
 
       const newFish = new Fish({
         name,
-        origin,
         gender,
         image,
         description,
         size,
         type,
+        quantity,
         feedingAmount,
         screeningRate,
         category,
@@ -280,6 +292,7 @@ const fishController = {
         gender,
         image,
         description,
+        quantity,
         size,
         type,
         feedingAmount,
@@ -306,6 +319,7 @@ const fishController = {
         !image ||
         !description ||
         !size ||
+        !quantity ||
         !type ||
         !feedingAmount ||
         !screeningRate ||
@@ -339,6 +353,7 @@ const fishController = {
         gender,
         image,
         description,
+        quantity,
         size,
         type,
         feedingAmount,

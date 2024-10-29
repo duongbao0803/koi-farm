@@ -1,11 +1,11 @@
 const fs = require("fs");
 const modelToSwagger = require("mongoose-to-swagger");
 const swaggerAutogen = require("swagger-autogen")();
-const User = require("./models/user.model.js");
-const Fish = require("./models/fish.model.js");
-const Post = require("./models/post.model.js");
-const Type = require("./models/type.model.js");
-const Voucher = require("./models/voucher.model.js");
+const User = require("./models/user.js");
+const Fish = require("./models/fish");
+const Post = require("./models/post");
+const Type = require("./models/type");
+const Voucher = require("./models/voucher");
 
 const outputFile = "./swagger-output.json";
 const routes = ["./routes/routes.js"];

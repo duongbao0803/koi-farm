@@ -19,10 +19,6 @@ const fishSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    origin: {
-      type: String,
-      required: true,
-    },
     image: {
       type: String,
       required: true,
@@ -35,6 +31,11 @@ const fishSchema = new mongoose.Schema(
       type: String,
       enum: ["Male", "Female"],
       required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 0,
     },
     age: {
       type: Number,
@@ -54,16 +55,12 @@ const fishSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Purebred Imported", "F1 Hybrid", "Pure Vietnamese"],
+      enum: ["Thuần chủng nhập khẩu", "Lai F1", "Thuần Việt"],
       required: true,
     },
     price: {
       type: Number,
       required: true,
-    },
-    sold: {
-      type: Boolean,
-      default: false,
     },
     certificates: [
       {

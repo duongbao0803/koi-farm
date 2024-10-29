@@ -199,7 +199,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "id": {
+                "_id": {
                   "example": "any"
                 },
                 "name": {
@@ -265,18 +265,6 @@
             "in": "path",
             "required": true,
             "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "example": "any"
-                }
-              }
-            }
           }
         ],
         "responses": {
@@ -380,6 +368,45 @@
         }
       }
     },
+    "/user/status/{id}": {
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/fish/": {
       "get": {
         "description": "",
@@ -467,6 +494,9 @@
                   "example": "any"
                 },
                 "description": {
+                  "example": "any"
+                },
+                "quantity": {
                   "example": "any"
                 },
                 "size": {
@@ -575,9 +605,6 @@
                 "name": {
                   "example": "any"
                 },
-                "origin": {
-                  "example": "any"
-                },
                 "image": {
                   "example": "any"
                 },
@@ -588,6 +615,9 @@
                   "example": "any"
                 },
                 "size": {
+                  "example": "any"
+                },
+                "quantity": {
                   "example": "any"
                 },
                 "type": {
@@ -1201,140 +1231,276 @@
   },
   "definitions": {
     "User": {
-      "type": "object",
+      "title": "user",
+      "required": [
+        "email",
+        "name",
+        "phone",
+        "address",
+        "password"
+      ],
       "properties": {
-        "title": {
-          "type": "string",
-          "example": "user"
+        "email": {
+          "type": "string"
         },
-        "required": {
+        "name": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "dob": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "address": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "status": {
+          "type": "boolean"
+        },
+        "role": {
+          "type": "string"
+        },
+        "_id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Fish": {
+      "title": "fish",
+      "required": [
+        "name",
+        "image",
+        "description",
+        "gender",
+        "quantity",
+        "size",
+        "feedingAmount",
+        "screeningRate",
+        "category",
+        "price",
+        "yob"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string",
+          "enum": [
+            "Male",
+            "Female"
+          ]
+        },
+        "quantity": {
+          "type": "number"
+        },
+        "age": {
+          "type": "number"
+        },
+        "size": {
+          "type": "number"
+        },
+        "type": {
+          "type": "schemaobjectid"
+        },
+        "feedingAmount": {
+          "type": "number"
+        },
+        "screeningRate": {
+          "type": "number"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Thuần chủng nhập khẩu",
+            "Lai F1",
+            "Thuần Việt"
+          ]
+        },
+        "price": {
+          "type": "number"
+        },
+        "certificates": {
           "type": "array",
-          "example": [
-            "email",
-            "name",
-            "phone",
-            "address",
-            "password"
-          ],
           "items": {
             "type": "string"
           }
         },
-        "properties": {
-          "type": "object",
-          "properties": {
-            "email": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                }
+        "yob": {
+          "type": "number"
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rating": {
+                "type": "number"
+              },
+              "content": {
+                "type": "string"
+              },
+              "author": {
+                "type": "schemaobjectid"
+              },
+              "_id": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
               }
             },
-            "name": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                }
-              }
-            },
-            "phone": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                }
-              }
-            },
-            "dob": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                },
-                "format": {
-                  "type": "string",
-                  "example": "date-time"
-                }
-              }
-            },
-            "address": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                }
-              }
-            },
-            "password": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                }
-              }
-            },
-            "status": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "boolean"
-                }
-              }
-            },
-            "role": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                }
-              }
-            },
-            "_id": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                }
-              }
-            },
-            "createdAt": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                },
-                "format": {
-                  "type": "string",
-                  "example": "date-time"
-                }
-              }
-            },
-            "updatedAt": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "example": "string"
-                },
-                "format": {
-                  "type": "string",
-                  "example": "date-time"
-                }
-              }
-            }
+            "required": []
           }
+        },
+        "vouchers": {
+          "type": "array",
+          "items": {
+            "type": "schemaobjectid"
+          }
+        },
+        "consignmentStatus": {
+          "type": "string"
+        },
+        "_id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Type": {
+      "title": "type",
+      "required": [
+        "name",
+        "origin"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "origin": {
+          "type": "string"
+        },
+        "_id": {
+          "type": "string"
+        }
+      }
+    },
+    "Post": {
+      "title": "post",
+      "required": [
+        "title",
+        "fish",
+        "image"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "required": false
+        },
+        "fish": {
+          "type": "schemaobjectid"
+        },
+        "image": {
+          "type": "string"
+        },
+        "_id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Voucher": {
+      "title": "voucher",
+      "required": [
+        "code",
+        "discountAmount",
+        "expireDate"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "discountAmount": {
+          "type": "number"
+        },
+        "expireDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "usageLimit": {
+          "type": "number"
+        },
+        "usedBy": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "schemaobjectid"
+              },
+              "dateUsed": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": []
+          }
+        },
+        "_id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     }

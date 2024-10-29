@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
-const Type = require("../models/type.model");
-const Fish = require("../models/fish.model");
-const Voucher = require("../models/voucher.model");
+const Type = require("../models/type");
+const Fish = require("../models/fish");
+const Voucher = require("../models/voucher");
 
 const voucherController = {
   getAllVoucher: async (req, res) => {

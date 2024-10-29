@@ -36,6 +36,12 @@ router.put(
 router.delete(
   "/:id",
   middlewareController.verifyTokenAdmin,
+  userController.deleteUser
+);
+
+router.patch(
+  "/status/:id",
+  middlewareController.verifyTokenAdmin,
   userController.updateStatusUser
 );
 

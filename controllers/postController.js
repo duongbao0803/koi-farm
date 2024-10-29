@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
-const Post = require("../models/post.model");
+const Post = require("../models/post");
 
 const postController = {
   getAllPost: async (req, res) => {
@@ -95,10 +95,11 @@ const postController = {
         title,
         description,
         image,
-        product,
+        fish,
       });
 
       const newPost = await post.save();
+
       if (newPost) {
         return res.status(200).json({
           message: "Thêm bài viết thành công",
