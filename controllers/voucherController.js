@@ -17,14 +17,13 @@ const voucherController = {
   },
 
   addNewVoucher: async (req, res) => {
-    const { code, discountAmount, expireDate, isActive, usageLimit } = req.body;
+    const { code, discountAmount, expireDate, usageLimit } = req.body;
 
     try {
       const voucher = new Voucher({
         code,
         discountAmount,
         expireDate,
-        isActive,
         usageLimit,
       });
 
@@ -43,11 +42,13 @@ const voucherController = {
 
     try {
       const voucher = await Voucher.findByIdAndUpdate(
-        { id, code, discountAmount, expireDate, isActive, usageLimit },
+        id,
+        { code, discountAmount, expireDate, isActive, usageLimit },
         { new: true }
       );
 
-      if (!voucher) return res.status(404).json({ err: "Voucher not found" });
+      if (!voucher)
+        return res.status(404).json({ err: "Không tìm thấy voucher" });
       return res
         .status(200)
         .json({ status: 200, message: "Cập nhật voucher thành công" });
@@ -57,46 +58,61 @@ const voucherController = {
   },
 
   useVoucher: async (req, res) => {
-    const { userId, code, fishId } = req.body;
+    const myId = req.user.id;
 
+    const { code, fishId } = req.body;
     try {
       const voucher = await Voucher.findOne({ code: code });
 
       if (!voucher) {
-        return res.status(404).json({ err: "Voucher not found" });
+        return res
+          .status(404)
+          .json({ status: 404, message: "Không tìm thấy voucher" });
       }
 
       if (voucher.expireDate < new Date()) {
-        return res.status(400).json({ err: "Voucher has expired" });
+        return res
+          .status(400)
+          .json({ status: 400, message: "Voucher đã hết hạn" });
       }
 
       if (!voucher.isActive) {
-        return res.status(400).json({ err: "Voucher is inactive" });
-      }
-
-      const userHasUsed = voucher.usedBy.some(
-        (usage) => usage.userId.toString() === userId
-      );
-
-      if (userHasUsed) {
         return res
           .status(400)
-          .json({ err: "Voucher has already been used by this user" });
+          .json({ status: 400, message: "Voucher không hợp lệ" });
+      }
+
+      if (voucher.usageLimit < 1) {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Voucher không hợp lệ" });
+      }
+
+      if (voucher.usedBy.some((usage) => usage._id.toString() === myId)) {
+        return res
+          .status(404)
+          .json({ status: 404, message: "Voucher không hợp lệ" });
       }
 
       const fish = await Fish.findById(fishId);
       if (!fish) {
-        return res.status(404).json({ err: "Fish not found" });
+        return res
+          .status(400)
+          .json({ status: 400, message: "Không tìm thấy cá" });
       }
 
-      const discountedPrice = Math.max(fish.price - voucher.discountAmount, 0); // Ensure price doesn't go below 0
+      const discountedPrice = Math.max(
+        fish.price - fish.price * (voucher.discountAmount / 100),
+        0
+      );
 
-      voucher.usedBy.push({ userId });
+      voucher.usedBy.push({ _id: myId });
+      voucher.usageLimit--;
       await voucher.save();
 
       return res.status(200).json({
         status: 200,
-        message: "Voucher applied successfully",
+        message: "Áp dụng voucher thành công",
         originalPrice: fish.price,
         discountedPrice: discountedPrice,
         discountAmount: voucher.discountAmount,
@@ -110,8 +126,11 @@ const voucherController = {
     try {
       const voucher = await Voucher.findByIdAndDelete(req.params.id);
 
-      if (!voucher) return res.status(404).json({ err: "Voucher not found" });
-      return res.status(200).json({ status: 200, message: "Voucher deleted" });
+      if (!voucher)
+        return res.status(404).json({ err: "Không tìm thấy voucher" });
+      return res
+        .status(200)
+        .json({ status: 200, message: "Xóa voucher thành công" });
     } catch (err) {
       return res.status(400).json(err);
     }

@@ -16,6 +16,12 @@ router.put(
   voucherController.editVoucher
 );
 
+router.post(
+  "/",
+  middlewareController.verifyTokenMember,
+  voucherController.useVoucher
+);
+
 router.delete(
   "/:id",
   middlewareController.verifyTokenAdmin,
