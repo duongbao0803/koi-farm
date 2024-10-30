@@ -1169,9 +1169,6 @@
               "properties": {
                 "code": {
                   "example": "any"
-                },
-                "fishId": {
-                  "example": "any"
                 }
               }
             }
@@ -1210,9 +1207,6 @@
                   "example": "any"
                 },
                 "expireDate": {
-                  "example": "any"
-                },
-                "isActive": {
                   "example": "any"
                 },
                 "usageLimit": {

@@ -58,11 +58,12 @@ const voucherController = {
   },
 
   useVoucher: async (req, res) => {
-    const myId = req.user.id;
+    const { code } = req.body;
 
-    const { code, fishId } = req.body;
     try {
-      const voucher = await Voucher.findOne({ code: code });
+      const voucher = await Voucher.findOne({ code });
+
+      console.log("check voucher", voucher);
 
       if (!voucher) {
         return res
@@ -88,35 +89,14 @@ const voucherController = {
           .json({ status: 400, message: "Voucher không hợp lệ" });
       }
 
-      if (voucher.usedBy.some((usage) => usage._id.toString() === myId)) {
-        return res
-          .status(404)
-          .json({ status: 404, message: "Voucher không hợp lệ" });
+      const discountAmount = voucher.discountAmount / 100;
+      if (discountAmount) {
+        return res.status(200).json({
+          status: 200,
+          message: "Áp dụng voucher thành công",
+          discountAmount,
+        });
       }
-
-      const fish = await Fish.findById(fishId);
-      if (!fish) {
-        return res
-          .status(400)
-          .json({ status: 400, message: "Không tìm thấy cá" });
-      }
-
-      const discountedPrice = Math.max(
-        fish.price - fish.price * (voucher.discountAmount / 100),
-        0
-      );
-
-      voucher.usedBy.push({ _id: myId });
-      voucher.usageLimit--;
-      await voucher.save();
-
-      return res.status(200).json({
-        status: 200,
-        message: "Áp dụng voucher thành công",
-        originalPrice: fish.price,
-        discountedPrice: discountedPrice,
-        discountAmount: voucher.discountAmount,
-      });
     } catch (err) {
       res.status(400).json(err);
     }
