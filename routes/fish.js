@@ -45,4 +45,10 @@ router.put(
   fishController.editComment
 );
 
+router.post(
+  "/compareFish",
+  // middlewareController.verifyToken,
+  fishController.compareFish
+);
+
 module.exports = router;

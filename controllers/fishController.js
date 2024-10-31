@@ -552,6 +552,93 @@ const fishController = {
       return res.status(400).send(err);
     }
   },
+
+  compareFish: async (req, res) => {
+    const { fishId1, fishId2 } = req.body;
+
+    if (!fishId1 || !fishId2) {
+      return res.status(400).json({ message: "ID của cá không hợp lệ" });
+    }
+
+    if (fishId1 === fishId2) {
+      return res.status(400).json({
+        status: 400,
+        message: "Vui lòng chọn 2 con cá khác nhau để so sánh",
+      });
+    }
+
+    try {
+      const [fish1, fish2] = await Promise.all([
+        Fish.findById(fishId1).populate("type"),
+        Fish.findById(fishId2).populate("type"),
+      ]);
+
+      if (!fish1 || !fish2) {
+        return res.status(404).json({ message: "Không tìm thấy cá" });
+      }
+
+      const comparison = {
+        name: {
+          fish1: fish1.name,
+          fish2: fish2.name,
+        },
+        image: {
+          fish1: fish1.image,
+          fish2: fish2.image,
+        },
+        gender: {
+          fish1: fish1.gender,
+          fish2: fish2.gender,
+        },
+        age: {
+          fish1: fish1.age,
+          fish2: fish2.age,
+        },
+        size: {
+          fish1: fish1.size,
+          fish2: fish2.size,
+        },
+        type: {
+          fish1: {
+            name: fish1.type.name,
+            origin: fish1.type.origin,
+          },
+          fish2: {
+            name: fish2.type.name,
+            origin: fish2.type.origin,
+          },
+        },
+        feedingAmount: {
+          fish1: fish1.feedingAmount,
+          fish2: fish2.feedingAmount,
+        },
+        screeningRate: {
+          fish1: fish1.screeningRate,
+          fish2: fish2.screeningRate,
+        },
+        category: {
+          fish1: fish1.category,
+          fish2: fish2.category,
+        },
+        price: {
+          fish1: fish1.price,
+          fish2: fish2.price,
+        },
+        certificates: {
+          fish1: fish1.certificates,
+          fish2: fish2.certificates,
+        },
+        yob: {
+          fish1: fish1.yob,
+          fish2: fish2.yob,
+        },
+      };
+
+      return res.status(200).json(comparison);
+    } catch (err) {
+      return res.status(400).json(err);
+    }
+  },
 };
 
 module.exports = fishController;
