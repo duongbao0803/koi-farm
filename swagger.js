@@ -6,6 +6,7 @@ const Fish = require("./models/fish");
 const Post = require("./models/post");
 const Type = require("./models/type");
 const Voucher = require("./models/voucher");
+const Order = require("./models/order");
 
 const outputFile = "./swagger-output.json";
 const routes = ["./routes/routes.js"];
@@ -15,6 +16,7 @@ const fishDefinition = modelToSwagger(Fish);
 const postDefinition = modelToSwagger(Post);
 const typeDefinition = modelToSwagger(Type);
 const voucherDefinition = modelToSwagger(Voucher);
+const orderDefinition = modelToSwagger(Order);
 
 const doc = {
   info: {
@@ -50,6 +52,7 @@ if (fs.existsSync(outputFile)) {
   existingSwaggerData.definitions.Type = typeDefinition;
   existingSwaggerData.definitions.Post = postDefinition;
   existingSwaggerData.definitions.Voucher = voucherDefinition;
+  existingSwaggerData.definitions.Order = orderDefinition;
 
   fs.writeFileSync(outputFile, JSON.stringify(existingSwaggerData, null, 2));
   console.log("Swagger file updated successfully");

@@ -14,19 +14,19 @@ const orderSchema = new mongoose.Schema(
     orderProducts: [
       {
         amount: { type: Number, required: true, min: 1 },
-        productId: {
+        fishId: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "fish",
           required: true,
         },
       },
     ],
-    userId: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
       required: true,
     },
-    voucherId: { type: mongoose.Schema.Types.ObjectId, ref: "voucher" },
+    voucher: { type: mongoose.Schema.Types.ObjectId, ref: "voucher" },
     transferAddress: {
       name: { type: String, required: true },
       address: { type: String, required: true },
@@ -37,7 +37,7 @@ const orderSchema = new mongoose.Schema(
     totalPrice: { type: Number, required: true, min: 1 },
     status: {
       type: String,
-      enum: ["PENDING", "DELIVERING", "DELIVERED"],
+      enum: ["PENDING", "DELIVERING", "DELIVERED", "CANCELLED"],
       default: "PENDING",
     },
     isPaid: { type: Boolean, default: false },

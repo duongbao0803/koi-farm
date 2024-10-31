@@ -63,8 +63,6 @@ const voucherController = {
     try {
       const voucher = await Voucher.findOne({ code });
 
-      console.log("check voucher", voucher);
-
       if (!voucher) {
         return res
           .status(404)

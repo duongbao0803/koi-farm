@@ -6,20 +6,164 @@ const crypto = require("crypto");
 const querystring = require("qs");
 const Order = require("../models/order");
 const User = require("../models/user");
-const Product = require("../models/product");
+const Fish = require("../models/fish");
+const Voucher = require("../models/voucher");
+
 const sortObject = require("../utils/format");
 
 const orderController = {
+  getAllOrder: async (req, res) => {
+    try {
+      let { page, pageSize, minPrice, maxPrice, status, paymentMethod } =
+        req.query;
+      page = parseInt(page) || 1;
+      pageSize = parseInt(pageSize) || 10;
+
+      if (page <= 0 || pageSize <= 0) {
+        return res.status(400).json({
+          message: "Số lượng trang và phần tử phải là số dương",
+          status: 400,
+        });
+      }
+
+      const skip = (page - 1) * pageSize;
+
+      const filter = {};
+      if (minPrice) {
+        filter.totalPrice = { $gte: Number(minPrice) };
+      }
+      if (maxPrice) {
+        filter.totalPrice = filter.totalPrice || {};
+        filter.totalPrice.$lte = Number(maxPrice);
+      }
+      if (status) {
+        filter.status = { $regex: new RegExp(status, "i") };
+      }
+      if (paymentMethod) {
+        filter.paymentMethod = { $regex: new RegExp(paymentMethod, "i") };
+      }
+
+      try {
+        const orders = await Order.find(filter)
+          .populate({ path: "voucher", select: "code discountAmount" })
+          .populate({ path: "user", select: "name email phone address" })
+          .skip(skip)
+          .limit(pageSize);
+        const totalCount = await Order.countDocuments(filter);
+
+        if (totalCount === 0) {
+          return res.status(404).json({
+            message: "Không tìm thấy đơn hàng",
+            status: 404,
+          });
+        }
+
+        const response = {
+          orders,
+          currentPage: page,
+          totalPages: Math.ceil(totalCount / pageSize),
+          totalOrders: totalCount,
+        };
+
+        return res.status(200).json(response);
+      } catch (err) {
+        return res.status(400).json(err);
+      }
+    } catch (err) {
+      return res.status(400).json(err);
+    }
+  },
+
+  getDetailOrder: async (req, res) => {
+    try {
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({
+          message: "ID của đơn hàng không hợp lệ",
+          status: 400,
+        });
+      }
+
+      const orderInfo = await Order.findById(req.params.id);
+      if (!orderInfo) {
+        return res.status(404).json({
+          message: "Không tìm thấy đơn hàng",
+          status: 404,
+        });
+      }
+
+      return res.status(200).json({ orderInfo });
+    } catch (err) {
+      return res.status(400).json(err);
+    }
+  },
+
+  getOrderListByUserId: async (req, res) => {
+    try {
+      let { page, pageSize } = req.query;
+      const user = req.user.id;
+
+      page = parseInt(page) || 1;
+      pageSize = parseInt(pageSize) || 10;
+
+      if (!mongoose.Types.ObjectId.isValid(user)) {
+        return res.status(400).json({
+          message: "ID của người dùng không hợp lệ",
+          status: 400,
+        });
+      }
+
+      if (page <= 0) {
+        return res.status(400).json({
+          message: "Số lượng trang phải là số dương",
+          status: 400,
+        });
+      }
+
+      if (pageSize <= 0) {
+        return res.status(400).json({
+          message: "Số lượng phần tử trong trang phải là số dương",
+          status: 400,
+        });
+      }
+
+      const skip = (page - 1) * pageSize;
+
+      const totalOrders = await Order.countDocuments({ user });
+
+      const orders = await Order.find({ user })
+        .populate({ path: "voucher", select: "code discountAmount" })
+        .populate({ path: "user", select: "name email phone address" })
+        .skip(skip)
+        .limit(pageSize);
+
+      if (skip >= totalOrders) {
+        return res.status(404).json({
+          message: "Không tìm thấy đơn hàng",
+          status: 404,
+        });
+      }
+
+      return res.status(200).json({
+        orders,
+        currentPage: page,
+        totalPages: Math.ceil(totalOrders / pageSize),
+        totalOrders: totalOrders,
+      });
+    } catch (err) {
+      return res.status(400).json(err);
+    }
+  },
+
   createOrder: async (req, res) => {
     try {
       const {
         orderProducts,
-        userId,
+        user,
         paymentMethod,
-        itemsPrice,
         transferPrice,
         totalPrice,
         transferAddress,
+        voucher,
       } = req.body;
 
       const errors = [];
@@ -33,7 +177,7 @@ const orderController = {
         errors.push("Không có sản phẩm nào được đặt hàng");
       }
 
-      if (!paymentMethod || !itemsPrice || !totalPrice) {
+      if (!paymentMethod || !totalPrice) {
         errors.push("Mọi trường dữ liệu khi thanh toán đều bắt buộc");
       }
 
@@ -45,8 +189,8 @@ const orderController = {
         errors.push("Mọi trường dữ liệu khi chọn sản phẩm đều bắt buộc");
       }
 
-      const orderProductIds = orderProducts.map((product) => product.productId);
-      const existingProducts = await Product.find({
+      const orderProductIds = orderProducts.map((product) => product.fishId);
+      const existingProducts = await Fish.find({
         _id: { $in: orderProductIds },
       });
 
@@ -64,16 +208,19 @@ const orderController = {
         });
       }
 
-      let user = null;
-      if (userId) {
-        user = await User.findById(userId);
-        if (!user) {
+      let userInfo = null;
+      if (user) {
+        userInfo = await User.findById(user);
+        if (!userInfo) {
           return res.status(404).json({
             message: "Không tìm thấy người dùng",
             status: 404,
           });
         }
-        if (user.role.includes("STAFF") || user.role.includes("ADMIN")) {
+        if (
+          userInfo.role.includes("STAFF") ||
+          userInfo.role.includes("ADMIN")
+        ) {
           return res.status(403).json({
             message: "Admin và quản lý không có quyền đặt hàng",
             status: 403,
@@ -81,14 +228,33 @@ const orderController = {
         }
       }
 
+      if (voucher) {
+        const voucherInfo = await Voucher.findById(voucher);
+
+        if (
+          voucherInfo &&
+          voucherInfo.usageLimit > 0 &&
+          voucherInfo.isActive &&
+          voucherInfo.expireDate > new Date()
+        ) {
+          voucherInfo.usageLimit -= 1;
+          await voucherInfo.save();
+        } else {
+          return res.status(400).json({
+            message: "Voucher không hợp lệ",
+            status: 400,
+          });
+        }
+      }
+
       const detailOrderProducts = await Promise.all(
         orderProducts.map(async (product) => {
-          const foundProduct = await Product.findById(product.productId);
+          const foundProduct = await Fish.findById(product.fishId);
           if (!foundProduct) {
             errors.push("Không tìm thấy sản phẩm");
           }
           return {
-            productId: product.productId,
+            fishId: product.fishId,
             name: foundProduct.name,
             image: foundProduct.image,
             amount: product.amount,
@@ -99,17 +265,15 @@ const orderController = {
       );
 
       for (const product of detailOrderProducts) {
-        const foundProduct = await Product.findById(product.productId);
-        if (foundProduct.status.includes("AVAILABLE")) {
-          if (foundProduct.quantity <= product.amount) {
-            return res.status(404).json({
-              message: `Sản phẩm chỉ còn ${foundProduct.quantity} con trong hồ`,
-              status: 404,
-            });
-          }
-          foundProduct.quantity -= product.amount;
-          await foundProduct.save({ validateModifiedOnly: true });
+        const foundProduct = await Fish.findById(product.fishId);
+        if (foundProduct.quantity <= product.amount) {
+          return res.status(404).json({
+            message: `Sản phẩm chỉ còn ${foundProduct.quantity} con trong hồ`,
+            status: 404,
+          });
         }
+        foundProduct.quantity -= product.amount;
+        await foundProduct.save({ validateModifiedOnly: true });
       }
 
       const order = await Order.create({
@@ -120,13 +284,13 @@ const orderController = {
           phone,
         },
         paymentMethod,
-        itemsPrice,
         transferPrice,
+        voucher: voucher || null,
         totalPrice,
-        userId,
+        user,
       });
 
-      if (user?.role === "MEMBER" && order.paymentMethod === "VNPAY") {
+      if (userInfo?.role === "MEMBER" && order.paymentMethod === "VNPAY") {
         const amount = order.totalPrice;
 
         process.env.TZ = "Asia/Ho_Chi_Minh";
@@ -171,13 +335,6 @@ const orderController = {
 
         return res.status(200).json({
           data: vnpUrl,
-          message:
-            "Tạo đơn hàng thành công. Vui lòng chờ chuyển trang thanh toán Vnpay",
-          status: 200,
-        });
-      } else {
-        return res.status(200).json({
-          message: "Tạo đơn hàng thành công. Chúng tôi sẽ liên lạc với bạn sớm",
           status: 200,
         });
       }
@@ -209,9 +366,6 @@ const orderController = {
         ...vnp_Params,
         vnp_Amount: vnp_Amount / 100,
       };
-      // const redirectUrl = `https://fmilk.vercel.app/payment?${querystring.stringify(
-      //   vnpay_Params_update
-      // )}`;
 
       const orderId = vnp_Params["vnp_TxnRef"];
 
@@ -238,7 +392,7 @@ const orderController = {
           if (order) {
             await Promise.all(
               order.orderProducts.map(async (product) => {
-                const foundProduct = await Product.findById(product.productId);
+                const foundProduct = await Fish.findById(product.fishId);
                 if (foundProduct) {
                   foundProduct.quantity += product.amount;
                   await foundProduct.save({ validateModifiedOnly: true });
@@ -248,6 +402,7 @@ const orderController = {
             await Order.findOneAndUpdate(
               { _id: orderId },
               {
+                status: "CANCELLED",
                 $push: { transactions: transaction },
               },
               { new: true }
@@ -268,6 +423,42 @@ const orderController = {
         return res.redirect(redirectUrl);
       }
     } catch (err) {
+      return res.status(400).json(err);
+    }
+  },
+
+  updateStatusOrder: async (req, res) => {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    const validStatus = ["PENDING", "DELIVERING", "DELIVERED", "CANCELLED"];
+    if (!validStatus.includes(status)) {
+      return res.status(400).json({
+        status: 404,
+        message: "Trạng thái đơn hàng không hợp lệ",
+      });
+    }
+
+    try {
+      const order = await Order.findById(orderId);
+      if (!order) {
+        return res.status(404).json({
+          status: 404,
+          message: "Đơn hàng không tồn tại",
+        });
+      }
+
+      order.status = status;
+
+      if (status === "DELIVERED") {
+        order.deliveredAt = new Date();
+        order.isPaid = true;
+      }
+
+      await order.save();
+
+      return res.json(order);
+    } catch (error) {
       return res.status(400).json(err);
     }
   },
