@@ -59,7 +59,10 @@ const fishController = {
         const fishes = await Fish.find(filter)
           .select()
           .populate("type")
-          .populate("comments")
+          .populate({
+            path: "comments.author",
+            select: "name",
+          })
           .skip(skip)
           .limit(pageSize);
         const totalCount = await Fish.countDocuments(filter);

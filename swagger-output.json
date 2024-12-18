@@ -5,10 +5,10 @@
     "description": "API Documentation for Koi-Farm",
     "version": "1.0.0"
   },
-  "host": "localhost:8000",
+  "host": "koi-farm-server.onrender.com",
   "basePath": "/api",
   "schemes": [
-    "http"
+    "https"
   ],
   "securityDefinitions": {
     "BearerAuth": {
